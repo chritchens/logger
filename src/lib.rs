@@ -8,11 +8,12 @@ extern crate term;
 extern crate typemap;
 
 use iron::{AfterMiddleware, BeforeMiddleware, IronResult, IronError, Request, Response};
-use iron::typemap::Assoc;
+use iron::typemap::Key;
 use term::{Terminal, WriterWrapper, stdout};
 
-use std::io::IoResult;
+use std::old_io::IoResult;
 use std::error::Error;
+use std::fmt;
 
 use format::FormatText::{Str, Method, URI, Status, ResponseTime};
 use format::FormatColor::{ConstantColor, FunctionColor};
@@ -49,11 +50,11 @@ impl Logger {
 }
 
 struct StartTime;
-impl Assoc<u64> for StartTime {}
+impl Key for StartTime { type Value = u64; }
 
 impl BeforeMiddleware for Logger {
     fn before(&self, req: &mut Request) -> IronResult<()> {
-        req.extensions.insert::<StartTime, u64>(time::precise_time_ns());
+        req.extensions.insert::<StartTime>(time::precise_time_ns());
         Ok(())
     }
 
@@ -65,7 +66,7 @@ impl BeforeMiddleware for Logger {
 impl AfterMiddleware for Logger {
     fn after(&self, req: &mut Request, res: &mut Response) -> IronResult<()> {
         let exit_time = time::precise_time_ns();
-        let entry_time = *req.extensions.get::<StartTime, u64>().unwrap();
+        let entry_time = *req.extensions.get::<StartTime>().unwrap();
 
         let response_time_ms = (exit_time - entry_time) as f64 / 1000000.0;
         let Format(format) = self.format.clone().unwrap_or_default();
@@ -113,7 +114,7 @@ impl AfterMiddleware for Logger {
             Some(terminal) => {
                 try!(log(terminal));
             }
-            None => { return Err(box CouldNotOpenTerminal as IronError) }
+            None => { return Err(Box::new(CouldNotOpenTerminal) as IronError) }
         };
 
         Ok(())
@@ -125,7 +126,7 @@ impl AfterMiddleware for Logger {
 }
 
 /// Error returned when logger cannout access stdout.
-#[deriving(Show, Copy)]
+#[derive(Show, Copy)]
 pub struct CouldNotOpenTerminal;
 
 impl Error for CouldNotOpenTerminal {
@@ -133,7 +134,11 @@ impl Error for CouldNotOpenTerminal {
         "Could Not Open Terminal"
     }
 
-    fn detail(&self) -> Option<String> {
-        Some("Logger could not open stdout as a terminal.".to_string())
+    fn cause(&self) -> Option<&Error> { None }
+}
+
+impl fmt::Display for CouldNotOpenTerminal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.description().fmt(f)  
     }
 }

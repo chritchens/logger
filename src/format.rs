@@ -17,7 +17,7 @@ use self::FormatAttr::{ConstantAttrs, FunctionAttrs};
 
 /// A formatting style for the `Logger`, consisting of multiple
 /// `FormatUnit`s concatenated into one line.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Format(pub Vec<FormatUnit>);
 
 impl Default for Format {
@@ -118,7 +118,7 @@ impl Format {
 
 struct FormatParser<'a> {
     // The characters of the format string.
-    chars: Peekable<char, Chars<'a>>,
+    chars: Peekable<Chars<'a>>,
 
     // Passed-in FormatColors
     colors: IntoIter<FormatColor>,
@@ -137,7 +137,7 @@ struct FormatParser<'a> {
 }
 
 impl<'a> FormatParser<'a> {
-    fn new(chars: Peekable<char, Chars>, colors: IntoIter<FormatColor>,
+    fn new(chars: Peekable<Chars<'a>>, colors: IntoIter<FormatColor>,
            attrs: IntoIter<FormatAttr>) -> FormatParser {
         FormatParser {
             chars: chars,
@@ -154,7 +154,7 @@ impl<'a> FormatParser<'a> {
 }
 
 // Some(None) means there was a parse error and this FormatParser should be abandoned.
-impl<'a> Iterator<Option<FormatUnit>> for FormatParser<'a> {
+impl<'a> Iterator for FormatParser<'a> {
     fn next(&mut self) -> Option<Option<FormatUnit>> {
         // If the parser has been cancelled or errored for some reason.
         if self.finished { return None }
@@ -365,7 +365,7 @@ enum ColorOrAttr {
 }
 
 /// A representation of color in a `FormatUnit`.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum FormatColor {
     /// A constant color
     ConstantColor(Option<color::Color>),
@@ -400,7 +400,7 @@ impl Clone for FormatAttr {
 
 /// A string of text to be logged. This is either one of the data
 /// fields supported by the `Logger`, or a custom `String`.
-#[deriving(Clone)]
+#[derive(Clone)]
 #[doc(hidden)]
 pub enum FormatText {
     Str(String),
@@ -411,7 +411,7 @@ pub enum FormatText {
 }
 
 /// A `FormatText` with associated style information.
-#[deriving(Clone)]
+#[derive(Clone)]
 #[doc(hidden)]
 pub struct FormatUnit {
     pub text: FormatText,
